@@ -5,12 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ShakerTestAutomation"
         mc:Ignorable="d"
-        Title="Phosentix Shaker Test Automation" Height="204.176" Width="444.47">
+        Title="Phosentix Shaker Test Automation" Height="204.176" Width="472.07" WindowStartupLocation="CenterScreen">
     <Grid>
-        <Button Content="Start Automation" x:Name="btnStartAutomation" HorizontalAlignment="Left" Margin="149,110,0,0" VerticalAlignment="Top" Width="120" Click="btnStartAutomation_Click"/>
-        <Label Content="MQC Serial Number" HorizontalAlignment="Left" Margin="27,66,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.35,-0.506"/>
-        <TextBox HorizontalAlignment="Left" Height="23" Margin="149,69,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
-        <Label x:Name="lblStatus" Content="Status" HorizontalAlignment="Left" Margin="10,134,0,0" VerticalAlignment="Top" Height="30" Width="418"/>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Button Content="Start Automation" x:Name="btnStartAutomation" HorizontalAlignment="Left" Margin="176,69,0,0" VerticalAlignment="Top" Width="120" Click="btnStartAutomation_Click" Height="39"/>
+        <Label x:Name="lblStatus" Content="Status" HorizontalAlignment="Left" Margin="10,134,0,0" VerticalAlignment="Top" Height="30" Width="446"/>
+        <Label x:Name="label" Content="Make sure the Omega app is open and that the script file has been loaded.&#xD;&#xA;Make sure that the Phosentix app is open and that the MQC plate is connected" HorizontalAlignment="Left" Margin="10,19,0,0" VerticalAlignment="Top" Width="446" Height="45"/>
+        <Label x:Name="lblTestProgress" Content="" HorizontalAlignment="Left" Margin="10,108,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.19,-0.215" Width="446"/>
 
     </Grid>
 </Window>

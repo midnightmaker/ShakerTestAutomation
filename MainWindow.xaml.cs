@@ -17,6 +17,9 @@ using System.Diagnostics; // for Process
 using System.Threading; // for Thread.Sleep()
 using System.Windows.Threading;
 using System.IO;
+using System.Windows.Automation.Text;
+using System.Collections;
+using System.Runtime.CompilerServices;
 
 namespace ShakerTestAutomation
 {
@@ -38,13 +41,13 @@ namespace ShakerTestAutomation
         DispatcherTimer timer;
         bool phxRecordingActive = false;
         int testCount = 0;
+        string plateSerialNumber = "";
         public MainWindow()
         {
             InitializeComponent();
             timer = new DispatcherTimer();
             timer.Interval = new TimeSpan(0, 0, 1);
             timer.Tick += Timer_Tick;
-
         }
 
         private void StartTimer()
@@ -55,6 +58,7 @@ namespace ShakerTestAutomation
         private void Timer_Tick(object sender, EventArgs e)
         {
             TimeSpan ts = DateTime.Now - dtTestStart;
+            lblTestProgress.Content = plateSerialNumber + " " + ts.ToString();
             if( !phxRecordingActive && ts.TotalSeconds > 12 )
             {
                 // And the test should now be running - wait 12 seconds for Omega to start shaking
@@ -71,33 +75,117 @@ namespace ShakerTestAutomation
                     PressButton(shakerTestStartDlg, "StartButton");
                     
                     phxRecordingActive = true;
+                    lblStatus.Content = ComboBoxItems[testCount] + " " + TestSpeeds[testCount] + "RPM";
                     testCount++;
                 }
 
             }
-            if ( ts.TotalSeconds > 90 )
+
+            if ( ts.TotalSeconds > 50  && phxRecordingActive )
             {
-                // Close down the result widow on PhosentixShaker Window
-                timer.Stop();
-                AutomationElement reportViewer = aePhxForm.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "Phosentix Insight Report Viewer"));
-
-                WindowPattern windowPattern = reportViewer.GetCurrentPattern(WindowPattern.Pattern) as WindowPattern;
-                CloseWindow(windowPattern);
-                PressButton(aePhxToolbar, "btnShakerTestControl");
-                // Now Press Omega OK button in the script window messagebox
-                PressOKOnOMegaInfo();
-                if(testCount < 15)
+                // Check to see if Omega dialog has popped up - this dialog will pop up after end of the current method file
+                // and will be after the Phosentix results are displayed.
+                AutomationElement okButton = GetOmegaInfoDialogPopupOkButton();
+                if( okButton != null )
                 {
-                    StartTimer();
-                    phxRecordingActive = false;
-                    
-                }
-                else
-                {
-                    MessageBox.Show("All tests complete");
-                }
+                    // Close down the result widow on PhosentixShaker Window
+                    timer.Stop();
+                    AutomationElement reportViewer = aePhxForm.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "Phosentix Insight Report Viewer"));
 
+                    // Record the final values for this run
+                    RecordFinalValues(aePhxForm, ComboBoxItems[testCount - 1], TestSpeeds[testCount - 1]);
+
+                    WindowPattern windowPattern = reportViewer.GetCurrentPattern(WindowPattern.Pattern) as WindowPattern;
+                    CloseWindow(windowPattern);
+
+                    // Now Press Omega OK button in the script window messagebox
+                    PressOKOnOMegaInfo( okButton );
+                    if (testCount < 15)
+                    {
+                        PressButton(aePhxToolbar, "btnShakerTestControl");
+                        StartTimer();
+                        phxRecordingActive = false;
+
+                    }
+                    else
+                    {
+                        MessageBox.Show("All tests complete");
+                    }
+                }
+                
             }
+        }
+
+        private void RecordFinalValues(AutomationElement phxForm, string testType, string targetRPM)
+        {
+            // TextBoxes and Labels have to be read using separate functions due to the 
+            // internal differences within the objects
+            ArrayList values = new ArrayList();
+            DateTime dt = DateTime.Now;
+
+            values.Add(dt.ToString("G")); // Use general date format code
+            
+            // To keep excel from dropping leading zeros, add the apostrophe
+            values.Add( "'" + plateSerialNumber );
+
+            // Test Type is Orbital, Linear etc
+            values.Add(testType);
+
+            values.Add(GetLabelValue(phxForm, "CurrentRPMX"));
+            values.Add(GetLabelValue(phxForm, "CurrentRPMY"));
+            values.Add(GetLabelValue(phxForm, "AverageRPMX"));
+            values.Add(GetLabelValue(phxForm, "AverageRPMY"));
+
+            // And textboxes need special treatment.
+            //values.Add(GetTextBoxText(phxForm, "TargetRPM"));
+            values.Add(targetRPM);
+
+            values.Add(GetLabelValue(phxForm, "TemperatureTL"));
+            values.Add(GetLabelValue(phxForm, "TemperatureTR"));
+            values.Add(GetLabelValue(phxForm, "TemperatureBL"));
+            values.Add(GetLabelValue(phxForm, "TemperatureBR"));
+            values.Add(GetLabelValue(phxForm, "TemperatureAvg"));
+
+            StringBuilder sb = new StringBuilder();
+            foreach( string s in values)
+            {
+                sb.Append(s);
+                sb.Append(",");
+            }
+
+            string filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+            string fileName = filePath + "\\" + plateSerialNumber + "-results.csv";
+
+            bool addHeader = !File.Exists(fileName);
+            using (StreamWriter outputFile = new StreamWriter(fileName, append: true))
+            {
+                if(addHeader)
+                {
+                    outputFile.WriteLine("Date,SerialNumber,Mode,CurrentRPMX,CurrentRPMY,AverageRPMX,AverageRPMY,TargetRPM,TemperatureTL,TemperatureTR,TemperatureBL,TemperatureBR,TemperatureAvg");
+                }
+                outputFile.WriteLine(sb.ToString().TrimEnd(','));
+            }
+
+        }
+
+        private string GetLabelValue( AutomationElement phxForm, string automationID )
+        {
+            AutomationElement labelField = phxForm.FindFirst(TreeScope.Descendants,
+                     new PropertyCondition(AutomationElement.AutomationIdProperty, automationID));
+
+            if(labelField != null )
+            {
+                string text = labelField.Current.Name;
+                text = text.Trim();
+                text = text.TrimEnd('C');
+                text = text.TrimEnd('°');
+                text = text.Trim();
+                return text;
+            }
+
+            return "Not found - " + automationID;
+
         }
 
         void SetSpeedTextBox( AutomationElement shakerTestStartDlg, string speed )
@@ -108,6 +196,29 @@ namespace ShakerTestAutomation
             ValuePattern vpTextBox1 = (ValuePattern)speedText.GetCurrentPattern(ValuePattern.Pattern);
             vpTextBox1.SetValue(speed);
 
+        }
+
+        string GetTextBoxText( AutomationElement form, string automationId)
+        {
+            AutomationElement textBox = form.FindFirst(TreeScope.Descendants,
+                      new PropertyCondition(AutomationElement.AutomationIdProperty, automationId));
+
+            if( textBox != null )
+            {
+                // Get required control patterns
+                TextPattern targetTextPattern = textBox.GetCurrentPattern(TextPattern.Pattern) as TextPattern;
+                if (targetTextPattern != null)
+                {
+                    TextPatternRange textRange = targetTextPattern.DocumentRange;
+                    return textRange.GetText(20);
+                }
+                else
+                {
+                    return "TextPattern not found - " + automationId;
+                }
+            }
+
+            return "Not Found - " + automationId;
         }
 
         private void CloseWindow(WindowPattern windowPattern)
@@ -140,7 +251,17 @@ namespace ShakerTestAutomation
                 if (aePhxForm == null)
                     throw new Exception("Failed to find Phosentix Insight");
                 else
+                {
+                    
                     lblStatus.Content = "Found Phosentix Insight Window...";
+                    plateSerialNumber = GetTextBoxText(aePhxForm, "PlateSerialNumber");
+                    if( plateSerialNumber.ToUpper().Contains("NOT") )
+                    {
+                        plateSerialNumber = "";
+                        throw new Exception("Could not get serial number for MQC plate");
+                    }
+                }
+                    
 
                 aePhxToolbar = aePhxForm.FindFirst(TreeScope.Children,
                 new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ToolBar));
@@ -197,7 +318,8 @@ namespace ShakerTestAutomation
                                     if (btn.Current.Name.Contains("Start"))
                                     {
                                         lblStatus.Content += "  Found start button";
-                                        StartTest();         
+                                        StartTest();
+                                        break;
                                     }
                                 }
                             }
@@ -214,7 +336,7 @@ namespace ShakerTestAutomation
         void StartTest()
         {
             testCount = 0;
-            //Press Shaker Test Start button
+            //Press Shaker Test Start button on Phosentix window
             AutomationElement aeButton = aePhxToolbar.FindFirst(TreeScope.Children,
                 new PropertyCondition(AutomationElement.AutomationIdProperty, "btnShakerTestControl"));
 
@@ -230,6 +352,7 @@ namespace ShakerTestAutomation
                 {
                     InvokePattern btnPbtnStartattern = btn.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
                     btnPbtnStartattern.Invoke();
+                    break;
                 }
             }
 
@@ -238,6 +361,7 @@ namespace ShakerTestAutomation
             // Now the second telling user to setup the linear 100RPM test
             PressOKOnOMegaInfo();
 
+            lblTestProgress.Content = plateSerialNumber;
             StartTimer();
 
 
@@ -279,33 +403,44 @@ namespace ShakerTestAutomation
             btnPattern.Invoke();
         }
 
-        void WaitForShakerTestStartDialogToShow()
+        AutomationElement GetOmegaInfoDialogPopupOkButton()
         {
-            AutomationElement aeToolbar = aePhxForm.FindFirst(TreeScope.Children,
-              new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ToolBar));
-        }
+          AutomationElement msgBox = aeOmegaForm.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.ClassNameProperty, "TMsgBox"));
+          if (msgBox != null)
+          {
+            AutomationElement okButton = msgBox.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ClassNameProperty, "TButton"));
+            return okButton;
+          }
+          return null;
 
-        bool PressOKOnOMegaInfo()
+        }
+        bool PressOKOnOMegaInfo( AutomationElement button = null)
         {
-            int waitCount = 0;
-            do
+            if( button != null )
             {
-                AutomationElement msgBox = aeOmegaForm.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.ClassNameProperty, "TMsgBox"));
-                if (msgBox != null)
+                InvokePattern btnPattern = button.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
+                btnPattern.Invoke();
+                return true;
+            }
+            else
+            {
+                int waitCount = 0;
+                do
                 {
-                    AutomationElement okButton = msgBox.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ClassNameProperty, "TButton"));
+                    AutomationElement okButton = GetOmegaInfoDialogPopupOkButton();
                     if (okButton != null)
                     {
                         InvokePattern btnPattern = okButton.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
                         btnPattern.Invoke();
                         return true;
                     }
+                    Thread.Sleep(100);
                 }
-                Thread.Sleep(100);
-            }
-            while (waitCount++ < 50);
+                while (waitCount++ < 50);
 
-            return false;
+                return false;
+
+            }
         }
 
         public static void SetSelectedComboBoxItem(AutomationElement comboBox, string item)
