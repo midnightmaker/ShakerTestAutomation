@@ -93,7 +93,10 @@ namespace ShakerTestAutomation
                     AutomationElement reportViewer = aePhxForm.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, "Phosentix Insight Report Viewer"));
 
                     // Record the final values for this run
-                    RecordFinalValues(aePhxForm, ComboBoxItems[testCount - 1], TestSpeeds[testCount - 1]);
+                    // NOTE: While this works, screen scraping the values takes a very long time to complete. Not sure why. The Phosentix
+                    // insight applicaiton 1.3.5.0 has been updated to write the CSV file  instead of using the screen scraping method.
+                    // 
+                    //RecordFinalValues(aePhxForm, ComboBoxItems[testCount - 1], TestSpeeds[testCount - 1]);
 
                     WindowPattern windowPattern = reportViewer.GetCurrentPattern(WindowPattern.Pattern) as WindowPattern;
                     CloseWindow(windowPattern);
