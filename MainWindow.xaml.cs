@@ -53,6 +53,7 @@ namespace ShakerTestAutomation
         private void StartTimer()
         {
             dtTestStart = DateTime.Now;
+            phxRecordingActive = false;
             timer.Start();
         }
         private void Timer_Tick(object sender, EventArgs e)
@@ -107,7 +108,7 @@ namespace ShakerTestAutomation
                     {
                         PressButton(aePhxToolbar, "btnShakerTestControl");
                         StartTimer();
-                        phxRecordingActive = false;
+                        
 
                     }
                     else
@@ -244,30 +245,34 @@ namespace ShakerTestAutomation
                 AutomationElement aeDesktop = AutomationElement.RootElement;
 
                 int numWaits = 0;
-                do
+                if(aePhxForm == null)
                 {
-                    aePhxForm = aeDesktop.FindFirst(TreeScope.Children,
-                      new PropertyCondition(AutomationElement.NameProperty, "Phosentix Insight"));
-                    ++numWaits;
-                    Thread.Sleep(100);
-                } while (aePhxForm == null && numWaits < 50);
-                if (aePhxForm == null)
-                    throw new Exception("Failed to find Phosentix Insight");
-                else
-                {
-                    
-                    lblStatus.Content = "Found Phosentix Insight Window...";
-                    plateSerialNumber = GetTextBoxText(aePhxForm, "PlateSerialNumber");
-                    if( plateSerialNumber.ToUpper().Contains("NOT") )
+                    do
                     {
-                        plateSerialNumber = "";
-                        throw new Exception("Could not get serial number for MQC plate");
-                    }
-                }
-                    
+                        aePhxForm = aeDesktop.FindFirst(TreeScope.Children,
+                          new PropertyCondition(AutomationElement.NameProperty, "Phosentix Insight"));
+                        ++numWaits;
+                        Thread.Sleep(100);
+                    } while (aePhxForm == null && numWaits < 50);
+                    if (aePhxForm == null)
+                        throw new Exception("Failed to find Phosentix Insight");
+                    else
+                    {
 
-                aePhxToolbar = aePhxForm.FindFirst(TreeScope.Children,
-                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ToolBar));
+                        lblStatus.Content = "Found Phosentix Insight Window...";
+                        plateSerialNumber = GetTextBoxText(aePhxForm, "PlateSerialNumber");
+                        if (plateSerialNumber.ToUpper().Contains("NOT"))
+                        {
+                            plateSerialNumber = "";
+                            throw new Exception("Could not get serial number for MQC plate");
+                        }
+                    }
+                    aePhxToolbar = aePhxForm.FindFirst(TreeScope.Children,
+                        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ToolBar));
+
+                }
+
+
 
                 //AutomationElement testDialog = this.GetShakerTestStartDialog();
                 //SetSpeedTextBox(testDialog, "234");
@@ -276,27 +281,32 @@ namespace ShakerTestAutomation
                 //SetSelectedComboBoxItem(comboBox, ComboBoxItems[testCount]);
 
                 //PressButton(testDialog, "StartButton");
-
-                do
+                if( aeOmegaForm == null )
                 {
-                    AutomationElementCollection allWindows = aeDesktop.FindAll(TreeScope.Children,
-                     new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window));
+                    do
+                    {
+                        AutomationElementCollection allWindows = aeDesktop.FindAll(TreeScope.Children,
+                         new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window));
 
-                    // If this fails in future, be aware that the window Title has a space in it " Omega" not "Omega"
-                    // SOmeone may change this at BMG in future in which case you will need to adjust the nameproperty below
-                    aeOmegaForm = aeDesktop.FindFirst(TreeScope.Children,
-                      new PropertyCondition(AutomationElement.NameProperty, " Omega"));
+                        // If this fails in future, be aware that the window Title has a space in it " Omega" not "Omega"
+                        // SOmeone may change this at BMG in future in which case you will need to adjust the nameproperty below
+                        aeOmegaForm = aeDesktop.FindFirst(TreeScope.Children,
+                          new PropertyCondition(AutomationElement.NameProperty, " Omega"));
 
-                    ++numWaits;
-                    Thread.Sleep(100);
-                } while (aeOmegaForm == null && numWaits < 50);
-                if (aeOmegaForm == null)
-                    throw new Exception("Failed to find Omega window");
-                else
-                    lblStatus.Content += " Found OMEGA Window...";
+                        ++numWaits;
+                        Thread.Sleep(100);
+                    } while (aeOmegaForm == null && numWaits < 50);
+                    if (aeOmegaForm == null)
+                        throw new Exception("Failed to find Omega window");
+                    else
+                        lblStatus.Content += " Found OMEGA Window...";
 
-                AutomationElementCollection allChildren = aeOmegaForm.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window));
+                }
 
+
+                AutomationElementCollection allChildren = aeOmegaForm.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window));
+
+                lblStatus.Content += $"Found {allChildren.Count } children";
                 foreach (AutomationElement ae in allChildren)
                 {
                     if (ae.Current.Name.Contains("Script"))
@@ -316,14 +326,21 @@ namespace ShakerTestAutomation
 
                                 AutomationElementCollection allButtons = tabControl.FindAll(TreeScope.Children,
                                                   new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button));
+                                bool foundStart = false;
                                 foreach (AutomationElement btn in allButtons)
                                 {
                                     if (btn.Current.Name.Contains("Start"))
                                     {
                                         lblStatus.Content += "  Found start button";
                                         StartTest();
+                                        foundStart = true;
                                         break;
                                     }
+                                }
+
+                                if( !foundStart )
+                                {
+                                    lblStatus.Content = "Unable to find OMEGA script start button";
                                 }
                             }
                         }
@@ -361,6 +378,7 @@ namespace ShakerTestAutomation
 
             // Wait for first popup information dialog telling user to connect the plate via Bluetooth
             PressOKOnOMegaInfo();
+            Thread.Sleep(100);
             // Now the second telling user to setup the linear 100RPM test
             PressOKOnOMegaInfo();
 
@@ -439,7 +457,7 @@ namespace ShakerTestAutomation
                     }
                     Thread.Sleep(100);
                 }
-                while (waitCount++ < 50);
+                while (waitCount++ < 70);
 
                 return false;
 
