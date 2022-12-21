@@ -34,8 +34,8 @@ namespace ShakerTestAutomation
         AutomationElement aeOmegaTestScriptTabControl = null;
 
         string[] ComboBoxItems = { "Linear X", "Linear X", "Linear X", "Linear X", "Orbital", "Orbital", "Orbital", "Orbital", "Orbital", "Orbital",
-                                    "Double Orbital", "Double Orbital", "Double Orbital", "Double Orbital", "Double Orbital" };
-        string[] TestSpeeds = {"100","300","500","700","100","300","500","700","900","1100","300","500","700","900","1100"};
+                                    "Double Orbital","Double Orbital", "Double Orbital", "Double Orbital", "Double Orbital", "Double Orbital" };
+        string[] TestSpeeds = {"100","300","500","700","100","300","500","700","900","1100","200","300","500","700","900","1100"};
 
         DateTime dtTestStart;
         DispatcherTimer timer;
@@ -60,9 +60,9 @@ namespace ShakerTestAutomation
         {
             TimeSpan ts = DateTime.Now - dtTestStart;
             lblTestProgress.Content = plateSerialNumber + " " + ts.ToString();
-            if( !phxRecordingActive && ts.TotalSeconds > 12 )
+            if( !phxRecordingActive && ts.TotalSeconds > 10 )
             {
-                // And the test should now be running - wait 12 seconds for Omega to start shaking
+                // And the test should now be running - wait 10 seconds for Omega to start shaking
                 // Now start the Phosentix monitoring
                 AutomationElement shakerTestStartDlg = GetShakerTestStartDialog();
                 if (shakerTestStartDlg != null)
