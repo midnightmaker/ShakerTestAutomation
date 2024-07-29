@@ -104,7 +104,7 @@ namespace ShakerTestAutomation
 
                     // Now Press Omega OK button in the script window messagebox
                     PressOKOnOMegaInfo( okButton );
-                    if (testCount < 15)
+                    if (testCount < TestSpeeds.Length )
                     {
                         PressButton(aePhxToolbar, "btnShakerTestControl");
                         StartTimer();
@@ -120,6 +120,9 @@ namespace ShakerTestAutomation
             }
         }
 
+
+        // NOTE: The Phosentix insight application 1.3.5.0 has been updated to write the CSV file  
+        // instead of using this in conjunction with screen scraping the values 
         private void RecordFinalValues(AutomationElement phxForm, string testType, string targetRPM)
         {
             // TextBoxes and Labels have to be read using separate functions due to the 
@@ -159,7 +162,7 @@ namespace ShakerTestAutomation
 
             string filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-            string fileName = filePath + "\\" + plateSerialNumber + "-results.csv";
+            string fileName = filePath + "\\" + plateSerialNumber + "-resultsB.csv";
 
             bool addHeader = !File.Exists(fileName);
             using (StreamWriter outputFile = new StreamWriter(fileName, append: true))
