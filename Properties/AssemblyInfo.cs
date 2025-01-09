@@ -10,7 +10,7 @@ using System.Windows;
 [assembly: AssemblyTitle("ShakerTestAutomation")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Phosentix LLC")]
 [assembly: AssemblyProduct("ShakerTestAutomation")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]

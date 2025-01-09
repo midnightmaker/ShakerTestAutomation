@@ -25,7 +25,10 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>1</ApplicationRevision>
+    <ProductName>Shaker Test Automation</ProductName>
+    <PublisherName>Phosentix LLC</PublisherName>
+    <SuiteName>Phosentix Tools</SuiteName>
+    <ApplicationRevision>2</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -51,7 +54,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>9F9303EDB76B12101410AF2BF2BC013D1371D47B</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>69413AE7AB77A772305A9FB42CA16FEA24F8E50F</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestKeyFile>ShakerTestAutomation_TemporaryKey.pfx</ManifestKeyFile>
